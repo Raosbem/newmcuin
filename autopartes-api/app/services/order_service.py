@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.inventory_log import StatusHistory
@@ -36,7 +36,6 @@ class OrderService:
             user_id      = user_id,
             status       = OrderStatus.RECEIVED,
             total_amount = total,
-            notes        = payload.notes,
             items        = items,
         )
         self.order_repo.create(order)
@@ -59,7 +58,7 @@ class OrderService:
             raise ValueError(f"No se puede cancelar un pedido en estado {order.status}")
 
         order.status       = OrderStatus.CANCELLED
-        order.cancelled_at = datetime.utcnow()
+        order.cancelled_at = datetime.now(timezone.utc)
         self.db.commit()
         return order
 

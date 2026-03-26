@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Ajustar Stock — {{ part.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('parts_index') }}" class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h3 class="fw-bold mb-0">
+    <i class="bi bi-boxes me-2 text-info"></i>Ajustar Stock
+  </h3>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width: 500px;">
+  <div class="card-header bg-white">
+    <strong>{{ part.name }}</strong> <code class="ms-2">{{ part.sku }}</code>
+  </div>
+  <div class="card-body p-4">
+    <div class="alert alert-info">
+      Stock actual: <strong>{{ part.stock_quantity }} unidades</strong>
+    </div>
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Nueva cantidad absoluta <span class="text-danger">*</span></label>
+        <input type="number" name="quantity" class="form-control" min="0" required
+               value="{{ part.stock_quantity }}">
+        <div class="form-text">Ingresa el stock total que debe quedar en inventario.</div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Motivo del ajuste <span class="text-danger">*</span></label>
+        <input type="text" name="reason" class="form-control" required
+               placeholder="Ej: Conteo físico, devolución de proveedor…">
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-info text-white fw-semibold">
+          <i class="bi bi-check-lg me-1"></i>Actualizar Stock
+        </button>
+        <a href="{{ url_for('parts_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.core.dependencies import get_db, get_current_user, require_staff
+from app.models.inventory_log import InventoryLog, InventoryAction
 from app.models.part import Part
-from app.schemas.part import PartCreateSchema, PartUpdateSchema, PartOut
+from app.schemas.part import PartCreateSchema, PartUpdateSchema, PartOut, StockUpdateSchema
 
 router = APIRouter(prefix="/parts", tags=["parts"])
 
@@ -71,6 +72,36 @@ def update_part(
         setattr(part, field, value)
 
     db.commit()
+    db.refresh(part)
+    return part
+
+
+@router.patch("/{part_id}/stock", response_model=PartOut)
+def update_stock(
+    part_id: str,
+    payload: StockUpdateSchema,
+    db: Session = Depends(get_db),
+    staff=Depends(require_staff),
+):
+    """Ajuste manual de stock. Registra un InventoryLog con action_type='adjustment'."""
+    part = db.query(Part).filter(Part.id == part_id, Part.is_active == True).first()
+    if not part:
+        raise HTTPException(status_code=404, detail="Autoparte no encontrada")
+
+    qty_before = part.stock_quantity
+    part.stock_quantity = payload.quantity
+
+    log = InventoryLog(
+        part_id         = part.id,
+        user_id         = staff.id,
+        action_type     = InventoryAction.ADJUSTMENT,
+        quantity_before = qty_before,
+        quantity_after  = payload.quantity,
+        delta           = payload.quantity - qty_before,
+        reason          = payload.reason,
+    )
+    db.add(log)
+    db.commit()          # ← único commit
     db.refresh(part)
     return part
 

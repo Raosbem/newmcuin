@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Autoparte — Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('parts_index') }}" class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h3 class="fw-bold mb-0">
+    <i class="bi bi-gear-fill me-2 text-warning"></i>{{ action }} Autoparte
+  </h3>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width: 700px;">
+  <div class="card-body p-4">
+    <form method="POST">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">SKU <span class="text-danger">*</span></label>
+          <input type="text" name="sku" class="form-control" required
+                 value="{{ part.sku if part else '' }}"
+                 {% if action == 'Editar' %}readonly{% endif %}>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" required
+                 value="{{ part.name if part else '' }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Descripción</label>
+          <textarea name="description" class="form-control" rows="2">{{ part.description if part else '' }}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Marca</label>
+          <input type="text" name="brand" class="form-control"
+                 value="{{ part.brand if part else '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Categoría</label>
+          <input type="text" name="category" class="form-control"
+                 value="{{ part.category if part else '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Precio (USD) <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" name="price" class="form-control" step="0.01" min="0.01" required
+                   value="{{ part.price if part else '' }}">
+          </div>
+        </div>
+        {% if action == 'Crear' %}
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Stock inicial</label>
+          <input type="number" name="stock_quantity" class="form-control" min="0" value="0">
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-warning fw-semibold">
+          <i class="bi bi-check-lg me-1"></i>{{ action }}
+        </button>
+        <a href="{{ url_for('parts_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

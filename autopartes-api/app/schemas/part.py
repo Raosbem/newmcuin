@@ -44,6 +44,19 @@ class PartUpdateSchema(BaseModel):
         return v
 
 
+class StockUpdateSchema(BaseModel):
+    """Para ajuste manual de stock (PATCH /parts/{id}/stock)."""
+    quantity: int   # nueva cantidad absoluta
+    reason: str
+
+    @field_validator("quantity")
+    @classmethod
+    def quantity_not_negative(cls, v):
+        if v < 0:
+            raise ValueError("El stock no puede ser negativo")
+        return v
+
+
 class PartOut(BaseModel):
     id: UUID
     sku: str

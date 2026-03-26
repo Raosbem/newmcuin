@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Autopartes — Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="fw-bold mb-0"><i class="bi bi-gear-fill me-2 text-warning"></i>Autopartes</h3>
+  <a href="{{ url_for('parts_create') }}" class="btn btn-warning">
+    <i class="bi bi-plus-circle me-1"></i>Nueva Autoparte
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>SKU</th>
+          <th>Nombre</th>
+          <th>Marca</th>
+          <th>Categoría</th>
+          <th>Precio</th>
+          <th>Stock</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in parts %}
+        <tr>
+          <td><code>{{ p.sku }}</code></td>
+          <td>{{ p.name }}</td>
+          <td>{{ p.brand or '—' }}</td>
+          <td>{{ p.category or '—' }}</td>
+          <td>${{ "%.2f"|format(p.price|float) }}</td>
+          <td>
+            {% if p.stock_quantity <= 5 %}
+              <span class="badge bg-danger">{{ p.stock_quantity }}</span>
+            {% elif p.stock_quantity <= 15 %}
+              <span class="badge bg-warning text-dark">{{ p.stock_quantity }}</span>
+            {% else %}
+              <span class="badge bg-success">{{ p.stock_quantity }}</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <a href="{{ url_for('parts_edit', part_id=p.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{{ url_for('parts_stock', part_id=p.id) }}" class="btn btn-sm btn-outline-info me-1" title="Ajustar stock">
+              <i class="bi bi-boxes"></i>
+            </a>
+            <form method="POST" action="{{ url_for('parts_delete', part_id=p.id) }}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar autoparte «{{ p.name }}»?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No hay autopartes registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
