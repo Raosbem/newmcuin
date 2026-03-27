@@ -21,8 +21,15 @@ EOF
 
 cd /var/www/html
 
+# Garantizar directorios de storage necesarios para Laravel
+mkdir -p storage/framework/{sessions,views,cache/data}
+mkdir -p storage/logs
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
 # Limpiar cachés
 php artisan config:clear 2>/dev/null || true
 php artisan cache:clear  2>/dev/null || true
+php artisan view:clear   2>/dev/null || true
 
 exec apache2-foreground

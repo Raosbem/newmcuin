@@ -19,7 +19,7 @@ class Order(Base, TimestampMixin):
 
     id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id      = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    status       = Column(Enum(OrderStatus), default=OrderStatus.RECEIVED, nullable=False)
+    status       = Column(Enum(OrderStatus, values_callable=lambda obj: [e.value for e in obj], name="orderstatus", create_type=False), default=OrderStatus.RECEIVED, nullable=False)
     total_amount = Column(Numeric(12, 2), nullable=False)
     cancelled_at = Column(DateTime, nullable=True)
 

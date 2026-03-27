@@ -10,8 +10,9 @@ from app.routers import auth, users, parts, orders, reports, inventory
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 App iniciando SIN BD")
+    print("🚀 API iniciando...")
     yield
+    print("API detenida.")
 
 
 app = FastAPI(

@@ -18,5 +18,5 @@ class User(Base, TimestampMixin):
     email           = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     full_name       = Column(String(255), nullable=False)
-    role            = Column(Enum(UserRole), default=UserRole.CUSTOMER, nullable=False)
+    role            = Column(Enum(UserRole, values_callable=lambda obj: [e.value for e in obj], name="userrole", create_type=False), default=UserRole.CUSTOMER, nullable=False)
     is_active       = Column(Boolean, default=True, nullable=False)

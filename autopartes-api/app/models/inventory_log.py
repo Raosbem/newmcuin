@@ -20,7 +20,7 @@ class InventoryLog(Base, TimestampMixin):
     id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     part_id         = Column(UUID(as_uuid=True), ForeignKey("parts.id"), nullable=False)
     user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    action_type     = Column(Enum(InventoryAction), nullable=False)
+    action_type     = Column(Enum(InventoryAction, values_callable=lambda obj: [e.value for e in obj], name="inventoryaction", create_type=False), nullable=False)
     quantity_before = Column(Integer, nullable=False)
     quantity_after  = Column(Integer, nullable=False)
     delta           = Column(Integer, nullable=False)

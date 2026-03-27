@@ -2,12 +2,14 @@
 FROM composer:2.7 AS builder
 
 WORKDIR /app
-RUN composer create-project laravel/laravel . --prefer-dist --no-interaction --quiet
+ENV COMPOSER_MEMORY_LIMIT=-1
+RUN composer create-project laravel/laravel . --prefer-dist --no-interaction
 
 # Copiar archivos personalizados encima del scaffold de Laravel
-COPY routes/        ./routes/
-COPY app/           ./app/
-COPY resources/views/ ./resources/views/
+COPY routes/           ./routes/
+COPY app/              ./app/
+COPY resources/views/  ./resources/views/
+COPY bootstrap/app.php ./bootstrap/app.php
 
 # ── Stage 2: runtime PHP + Apache ─────────────────────────────────────────────
 FROM php:8.3-apache
