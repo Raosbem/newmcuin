@@ -5,11 +5,10 @@ from decimal import Decimal
 
 
 class PartCreateSchema(BaseModel):
-    sku: str
     name: str
     description: Optional[str] = None
-    brand: Optional[str] = None
-    category: Optional[str] = None
+    brand_id: Optional[UUID] = None
+    category_id: Optional[UUID] = None
     price: Decimal
     stock_quantity: int = 0
 
@@ -31,10 +30,9 @@ class PartCreateSchema(BaseModel):
 class PartUpdateSchema(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    brand: Optional[str] = None
-    category: Optional[str] = None
+    brand_id: Optional[UUID] = None
+    category_id: Optional[UUID] = None
     price: Optional[Decimal] = None
-    stock_quantity: Optional[int] = None
 
     @field_validator("price")
     @classmethod
@@ -62,10 +60,13 @@ class PartOut(BaseModel):
     sku: str
     name: str
     description: Optional[str]
-    brand: Optional[str]
-    category: Optional[str]
+    brand_id: Optional[UUID]
+    brand: Optional[str]        # viene del @property en el modelo ORM
+    category_id: Optional[UUID]
+    category: Optional[str]     # viene del @property en el modelo ORM
     price: Decimal
     stock_quantity: int
     is_active: bool
+    image_url: Optional[str] = None
 
     model_config = {"from_attributes": True}

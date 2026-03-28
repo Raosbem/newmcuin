@@ -2,6 +2,7 @@ from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from uuid import UUID
 from decimal import Decimal
+from datetime import datetime
 from app.models.order import OrderStatus
 
 
@@ -31,6 +32,7 @@ class OrderCreateSchema(BaseModel):
 class OrderItemOut(BaseModel):
     id: UUID
     part_id: UUID
+    part_name: Optional[str]
     quantity: int
     unit_price: Decimal
     subtotal: Decimal
@@ -41,8 +43,10 @@ class OrderItemOut(BaseModel):
 class OrderOut(BaseModel):
     id: UUID
     user_id: UUID
+    customer_name: Optional[str]
     status: OrderStatus
     total_amount: Decimal
+    created_at: Optional[datetime]
     items: List[OrderItemOut]
 
     model_config = {"from_attributes": True}

@@ -31,6 +31,10 @@ class InventoryLog(Base, TimestampMixin):
     part       = relationship("Part", backref="inventory_logs")
     managed_by = relationship("User", backref="inventory_logs")
 
+    @property
+    def part_name(self) -> str | None:
+        return self.part.name if self.part else None
+
 
 class StatusHistory(Base):
     __tablename__ = "status_history"

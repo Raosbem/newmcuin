@@ -26,6 +26,8 @@ services:
       SECRET_KEY: super-secret-key-for-jwt-2024
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+    volumes:
+      - api_static:/app/static
     depends_on:
       db:
         condition: service_healthy
@@ -53,6 +55,7 @@ services:
       APP_DEBUG: "true"
       APP_URL: http://localhost:8080
       API_URL: http://api:8000/api/v1
+      PUBLIC_API_URL: http://localhost:8000
       SESSION_DRIVER: file
       CACHE_STORE: file
     depends_on:
@@ -60,3 +63,4 @@ services:
 
 volumes:
   pg_data:
+  api_static:

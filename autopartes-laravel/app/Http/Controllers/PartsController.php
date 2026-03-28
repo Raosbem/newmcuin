@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class PartsController extends Controller
@@ -18,12 +19,18 @@ class PartsController extends Controller
         return session('api_token', '');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $resp  = Http::withToken($this->token())
-            ->get("{$this->apiUrl}/parts", ['limit' => 100]);
-        $parts = $resp->successful() ? $resp->json() : [];
-        return view('parts.index', compact('parts'));
+        $params = ['limit' => 100];
+        if ($request->filled('search'))      $params['search']      = $request->query('search');
+        if ($request->filled('brand_id'))    $params['brand_id']    = $request->query('brand_id');
+        if ($request->filled('category_id')) $params['category_id'] = $request->query('category_id');
+
+        $parts      = Http::withToken($this->token())->get("{$this->apiUrl}/parts", $params)->json() ?? [];
+        $brands     = Http::withToken($this->token())->get("{$this->apiUrl}/brands")->json() ?? [];
+        $categories = Http::withToken($this->token())->get("{$this->apiUrl}/categories")->json() ?? [];
+
+        return view('parts.index', compact('parts', 'brands', 'categories'));
     }
 
     public function show(string $id)

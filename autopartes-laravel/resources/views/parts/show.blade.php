@@ -23,8 +23,8 @@
           <span class="text-muted"><i class="bi bi-box-seam me-1"></i>{{ $part['stock_quantity'] }} disponibles</span>
         </div>
         @if(session('user'))
-        <a href="{{ route('orders.create') }}" class="btn btn-warning w-100 mt-3">
-          <i class="bi bi-cart-plus me-1"></i>Hacer Pedido
+        <a href="{{ route('cart.index') }}" class="btn btn-warning w-100 mt-3">
+          <i class="bi bi-cart3 me-1"></i>Ver carrito
         </a>
         @else
         <a href="{{ route('login') }}" class="btn btn-outline-warning w-100 mt-3">

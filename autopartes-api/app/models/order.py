@@ -11,6 +11,7 @@ class OrderStatus(str, enum.Enum):
     RECEIVED   = "received"
     PROCESSING = "processing"
     SHIPPED    = "shipped"
+    DELIVERED  = "delivered"
     CANCELLED  = "cancelled"
 
 
@@ -26,6 +27,10 @@ class Order(Base, TimestampMixin):
     user  = relationship("User", backref="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
+    @property
+    def customer_name(self) -> str | None:
+        return self.user.full_name if self.user else None
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -39,3 +44,7 @@ class OrderItem(Base):
 
     order = relationship("Order", back_populates="items")
     part  = relationship("Part", backref="order_items")
+
+    @property
+    def part_name(self) -> str | None:
+        return self.part.name if self.part else None

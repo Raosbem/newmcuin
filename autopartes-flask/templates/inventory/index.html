@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Inventario — Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="fw-bold mb-0"><i class="bi bi-boxes me-2 text-warning"></i>Inventario</h3>
+  <a href="{{ url_for('inventory_logs') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-journal-text me-1"></i>Auditoría de inventario
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>SKU</th>
+          <th>Nombre</th>
+          <th>Marca</th>
+          <th>Categoría</th>
+          <th>Precio</th>
+          <th>Stock</th>
+          <th class="text-center">Ajustar Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in parts %}
+        <tr>
+          <td><code>{{ p.sku }}</code></td>
+          <td>{{ p.name }}</td>
+          <td>{{ p.brand or '—' }}</td>
+          <td>{{ p.category or '—' }}</td>
+          <td>${{ "%.2f"|format(p.price|float) }}</td>
+          <td>
+            {% if p.stock_quantity <= 5 %}
+              <span class="badge bg-danger">{{ p.stock_quantity }}</span>
+            {% elif p.stock_quantity <= 15 %}
+              <span class="badge bg-warning text-dark">{{ p.stock_quantity }}</span>
+            {% else %}
+              <span class="badge bg-success">{{ p.stock_quantity }}</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <a href="{{ url_for('parts_stock', part_id=p.id) }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-boxes me-1"></i>Ajustar
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No hay productos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

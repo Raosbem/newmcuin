@@ -13,33 +13,63 @@
 
 <div class="card border-0 shadow-sm" style="max-width: 700px;">
   <div class="card-body p-4">
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
       <div class="row g-3">
+
+        {% if action == 'Editar' %}
         <div class="col-md-6">
-          <label class="form-label fw-semibold">SKU <span class="text-danger">*</span></label>
-          <input type="text" name="sku" class="form-control" required
-                 value="{{ part.sku if part else '' }}"
-                 {% if action == 'Editar' %}readonly{% endif %}>
+          <label class="form-label fw-semibold text-muted">SKU (generado automáticamente)</label>
+          <input type="text" class="form-control bg-light" value="{{ part.sku }}" disabled>
         </div>
+        {% endif %}
+
         <div class="col-md-6">
           <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
           <input type="text" name="name" class="form-control" required
                  value="{{ part.name if part else '' }}">
         </div>
+
         <div class="col-12">
           <label class="form-label fw-semibold">Descripción</label>
           <textarea name="description" class="form-control" rows="2">{{ part.description if part else '' }}</textarea>
         </div>
+
         <div class="col-md-6">
           <label class="form-label fw-semibold">Marca</label>
-          <input type="text" name="brand" class="form-control"
-                 value="{{ part.brand if part else '' }}">
+          <div class="input-group">
+            <select name="brand_id" class="form-select">
+              <option value="">— Sin marca —</option>
+              {% for b in brands %}
+              <option value="{{ b.id }}"
+                {% if part and part.brand_id == b.id %}selected{% endif %}>
+                {{ b.name }}
+              </option>
+              {% endfor %}
+            </select>
+            <a href="{{ url_for('brands_create') }}" class="btn btn-outline-secondary" title="Nueva marca">
+              <i class="bi bi-plus-lg"></i>
+            </a>
+          </div>
         </div>
+
         <div class="col-md-6">
           <label class="form-label fw-semibold">Categoría</label>
-          <input type="text" name="category" class="form-control"
-                 value="{{ part.category if part else '' }}">
+          <div class="input-group">
+            <select name="category_id" class="form-select">
+              <option value="">— Sin categoría —</option>
+              {% for c in categories %}
+              <option value="{{ c.id }}"
+                {% if part and part.category_id == c.id %}selected{% endif %}>
+                {{ c.name }}
+              </option>
+              {% endfor %}
+            </select>
+            <a href="{{ url_for('categories_create') }}" class="btn btn-outline-secondary" title="Nueva categoría">
+              <i class="bi bi-plus-lg"></i>
+            </a>
+          </div>
         </div>
+
         <div class="col-md-6">
           <label class="form-label fw-semibold">Precio (USD) <span class="text-danger">*</span></label>
           <div class="input-group">
@@ -48,13 +78,35 @@
                    value="{{ part.price if part else '' }}">
           </div>
         </div>
+
         {% if action == 'Crear' %}
         <div class="col-md-6">
           <label class="form-label fw-semibold">Stock inicial</label>
           <input type="number" name="stock_quantity" class="form-control" min="0" value="0">
         </div>
         {% endif %}
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Imagen del producto</label>
+          {% if part and part.image_url %}
+          <div class="mb-2">
+            <img src="http://localhost:8000{{ part.image_url }}" alt="Imagen actual"
+                 class="rounded border" style="height:120px;object-fit:cover;">
+            <div class="text-muted small mt-1">Imagen actual — sube una nueva para reemplazarla</div>
+          </div>
+          {% endif %}
+          <input type="file" name="image" class="form-control" accept="image/jpeg,image/png,image/webp">
+          <div class="form-text">Opcional. JPG, PNG o WebP.</div>
+        </div>
+
       </div>
+
+      {% if action == 'Crear' %}
+      <div class="alert alert-info py-2 small mt-3 mb-0">
+        <i class="bi bi-info-circle me-1"></i>
+        El <strong>SKU</strong> se generará automáticamente al guardar.
+      </div>
+      {% endif %}
 
       <div class="d-flex gap-2 mt-4">
         <button type="submit" class="btn btn-warning fw-semibold">

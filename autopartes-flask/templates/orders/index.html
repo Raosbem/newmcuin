@@ -21,20 +21,28 @@
       </thead>
       <tbody>
         {% set status_colors = {
-          'pending':'warning','confirmed':'info','shipped':'primary',
+          'received':'warning','processing':'info','shipped':'primary',
           'delivered':'success','cancelled':'danger'
+        } %}
+        {% set status_labels = {
+          'received':'Recibido','processing':'En proceso','shipped':'Enviado',
+          'delivered':'Entregado','cancelled':'Cancelado'
         } %}
         {% for o in orders %}
         <tr>
           <td><code>{{ o.id[:8].upper() }}</code></td>
-          <td><small class="text-muted">{{ o.user_id[:8] }}…</small></td>
+          <td>
+            {{ o.customer_name or '—' }}
+            <br><small class="text-muted">{{ o.user_id[:8] }}…</small>
+          </td>
           <td>
             <span class="badge bg-{{ status_colors.get(o.status, 'secondary') }}">
-              {{ o.status }}
+              {{ status_labels.get(o.status, o.status) }}
             </span>
           </td>
           <td class="fw-semibold">${{ "%.2f"|format(o.total_amount|float) }}</td>
           <td><small>{{ o.created_at[:10] if o.created_at else '—' }}</small></td>
+
           <td class="text-center">
             <a href="{{ url_for('orders_detail', order_id=o.id) }}" class="btn btn-sm btn-outline-primary">
               <i class="bi bi-eye"></i> Ver

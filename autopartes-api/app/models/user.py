@@ -6,9 +6,10 @@ from app.models.base import Base, TimestampMixin
 
 
 class UserRole(str, enum.Enum):
-    CUSTOMER = "customer"
-    STAFF    = "staff"
-    ADMIN    = "admin"
+    CUSTOMER   = "customer"
+    STAFF      = "staff"
+    ADMIN      = "admin"
+    SUPERADMIN = "superadmin"
 
 
 class User(Base, TimestampMixin):

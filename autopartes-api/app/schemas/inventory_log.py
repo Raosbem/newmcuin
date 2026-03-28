@@ -8,6 +8,7 @@ from app.models.inventory_log import InventoryAction
 class InventoryLogOut(BaseModel):
     id: UUID
     part_id: UUID
+    part_name: Optional[str]
     user_id: UUID
     action_type: InventoryAction
     quantity_before: int

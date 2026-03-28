@@ -3,8 +3,10 @@
 
 @section('content')
 @php
-  $colors = ['pending'=>'warning','confirmed'=>'info','shipped'=>'primary',
+  $colors = ['received'=>'warning','processing'=>'info','shipped'=>'primary',
              'delivered'=>'success','cancelled'=>'danger'];
+  $labels = ['received'=>'Recibido','processing'=>'En proceso','shipped'=>'Enviado',
+             'delivered'=>'Entregado','cancelled'=>'Cancelado'];
 @endphp
 
 <div class="d-flex align-items-center mb-4">
@@ -27,7 +29,7 @@
           <dt class="small text-muted">Estado</dt>
           <dd>
             <span class="badge bg-{{ $colors[$order['status']] ?? 'secondary' }} mb-2">
-              {{ $order['status'] }}
+              {{ $labels[$order['status']] ?? $order['status'] }}
             </span>
           </dd>
           <dt class="small text-muted">Total</dt>
@@ -74,7 +76,7 @@
           <tbody>
             @foreach($order['items'] as $item)
             <tr>
-              <td><small><code>{{ strtoupper(substr($item['part_id'], 0, 8)) }}…</code></small></td>
+              <td>{{ $item['part_name'] ?? strtoupper(substr($item['part_id'], 0, 8)) }}</td>
               <td>${{ number_format($item['unit_price'], 2) }}</td>
               <td>{{ $item['quantity'] }}</td>
               <td class="fw-semibold">${{ number_format($item['subtotal'], 2) }}</td>

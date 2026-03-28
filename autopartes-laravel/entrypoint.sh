@@ -10,6 +10,7 @@ APP_DEBUG=${APP_DEBUG:-true}
 APP_URL=${APP_URL:-http://localhost:8080}
 
 API_URL=${API_URL:-http://api:8000/api/v1}
+PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:8000}
 
 LOG_CHANNEL=stack
 LOG_LEVEL=debug

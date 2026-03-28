@@ -11,6 +11,9 @@ from app.schemas.user import (
     UserOut,
 )
 
+# Roles que solo el superadmin puede asignar o gestionar
+_ADMIN_ROLES = {UserRole.ADMIN, UserRole.SUPERADMIN}
+
 router = APIRouter(prefix="/users", tags=["users"])
 
 
@@ -75,9 +78,14 @@ def get_user(
 def create_internal_user(
     payload: UserCreateInternalSchema,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    current_admin=Depends(require_admin),
 ):
-    """Crea un usuario interno (staff o admin). Solo admin."""
+    """Crea un usuario interno. Solo superadmin puede crear roles admin/superadmin."""
+    if payload.role in _ADMIN_ROLES and current_admin.role != "superadmin":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo el superadmin puede crear administradores",
+        )
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(status_code=400, detail="El email ya está registrado")
 
@@ -98,12 +106,26 @@ def update_user(
     user_id: str,
     payload: UserUpdateSchema,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    current_admin=Depends(require_admin),
 ):
-    """Actualiza nombre, rol o estado activo de un usuario. Solo admin."""
+    """Actualiza nombre, rol o estado activo de un usuario. Solo admin/superadmin."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Solo superadmin puede modificar usuarios con rol admin/superadmin
+    if user.role in _ADMIN_ROLES and current_admin.role != "superadmin":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo el superadmin puede modificar administradores",
+        )
+    # Solo superadmin puede asignar rol admin/superadmin
+    new_role = payload.model_dump(exclude_unset=True).get("role")
+    if new_role and UserRole(new_role) in _ADMIN_ROLES and current_admin.role != "superadmin":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo el superadmin puede asignar rol de administrador",
+        )
 
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
@@ -117,12 +139,18 @@ def update_user(
 def toggle_active(
     user_id: str,
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    current_admin=Depends(require_admin),
 ):
-    """Activa o desactiva un usuario. Solo admin."""
+    """Activa o desactiva un usuario. Admins no pueden tocar a otros admins."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if user.role in _ADMIN_ROLES and current_admin.role != "superadmin":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo el superadmin puede activar/desactivar administradores",
+        )
 
     user.is_active = not user.is_active
     db.commit()

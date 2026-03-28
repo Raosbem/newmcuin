@@ -34,12 +34,18 @@ def get_current_user(
 
 
 def require_staff(user=Depends(get_current_user)):
-    if user.role not in ("staff", "admin"):
+    if user.role not in ("staff", "admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Acceso solo para personal interno")
     return user
 
 
 def require_admin(user=Depends(get_current_user)):
-    if user.role != "admin":
+    if user.role not in ("admin", "superadmin"):
         raise HTTPException(status_code=403, detail="Acceso solo para administradores")
+    return user
+
+
+def require_superadmin(user=Depends(get_current_user)):
+    if user.role != "superadmin":
+        raise HTTPException(status_code=403, detail="Acceso solo para superadmin")
     return user

@@ -1,12 +1,14 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.exceptions import value_error_handler, permission_error_handler
 from app.db.session import engine
 from app.models.base import Base
-from app.models import user, part, order, inventory_log  # registra todos los modelos en Base
-from app.routers import auth, users, parts, orders, reports, inventory
+from app.models import user, part, order, inventory_log, brand, category  # registra todos los modelos en Base
+from app.routers import auth, users, parts, orders, reports, inventory, brands, categories
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,6 +40,12 @@ app.include_router(parts.router,   prefix="/api/v1")
 app.include_router(orders.router,  prefix="/api/v1")
 app.include_router(reports.router,    prefix="/api/v1")
 app.include_router(inventory.router,  prefix="/api/v1")
+app.include_router(brands.router,     prefix="/api/v1")
+app.include_router(categories.router, prefix="/api/v1")
+
+os.makedirs("/app/static/images", exist_ok=True)
+app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+
 
 @app.get("/")
 def root():
