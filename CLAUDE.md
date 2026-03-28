@@ -131,7 +131,7 @@ newmcuin/
 │   ├── app.py                      ← TODO el código Flask (rutas + lógica + helper api())
 │   └── requirements.txt
 │
-└── autopartes-laravel/             ← Laravel — portal de clientes
+└── autopartes-laravel/             ← Laravel — portal de clientes ("Macuin Autopartes")
     ├── Dockerfile                  ← Multi-stage: builder (Composer) + runtime (PHP/Apache)
     ├── entrypoint.sh               ← Genera .env de Laravel desde env vars, limpia caché
     ├── bootstrap/app.php
@@ -139,15 +139,17 @@ newmcuin/
     ├── app/Http/
     │   ├── Controllers/
     │   │   ├── AuthController.php
-    │   │   ├── PartsController.php
-    │   │   └── OrdersController.php
+    │   │   ├── PartsController.php  ← index() acepta search/brand_id/category_id
+    │   │   ├── OrdersController.php
+    │   │   └── CartController.php   ← add/update/remove/index/checkout (sesión)
     │   └── Middleware/
     │       └── CheckApiAuth.php    ← Middleware que verifica token en sesión
     └── resources/views/            ← Blade templates con Bootstrap 5.3
-        ├── layouts/app.blade.php
+        ├── layouts/app.blade.php   ← Navbar con carrito (badge), "Macuin Autopartes"
         ├── auth/{login,register}.blade.php
-        ├── parts/{index,show}.blade.php
-        └── orders/{index,create,show}.blade.php
+        ├── parts/{index,show}.blade.php  ← index: buscador + filtros marca/cat + añadir carrito
+        ├── cart/index.blade.php    ← Vista carrito con cantidades, totales, checkout
+        └── orders/{index,show}.blade.php ← create.blade.php eliminado (reemplazado por carrito)
 ```
 
 ---
@@ -173,24 +175,25 @@ Todos bajo prefijo `/api/v1`. Swagger disponible en `http://localhost:8000/docs`
 | PATCH  | /users/{id}/toggle-active     | admin         | Activar/desactivar usuario               |
 
 ### Parts
-| Método | Ruta                     | Rol requerido | Descripción                        |
-|--------|--------------------------|---------------|------------------------------------|
-| POST   | /parts/                  | staff/admin   | Crear pieza                        |
-| GET    | /parts/                  | Cualquier JWT | Listar piezas activas (filtros)    |
-| GET    | /parts/{id}              | Cualquier JWT | Detalle de pieza                   |
-| PUT    | /parts/{id}              | staff/admin   | Actualizar pieza                   |
-| PATCH  | /parts/{id}/stock        | staff/admin   | Ajustar stock manualmente con log  |
-| DELETE | /parts/{id}              | staff/admin   | Soft delete (is_active=False)      |
+| Método | Ruta                     | Rol requerido | Descripción                                     |
+|--------|--------------------------|---------------|-------------------------------------------------|
+| POST   | /parts/                  | staff/admin   | Crear pieza                                     |
+| GET    | /parts/                  | Cualquier JWT | Listar piezas activas (filtros: search/brand_id/category_id) |
+| GET    | /parts/{id}              | Cualquier JWT | Detalle de pieza                                |
+| PUT    | /parts/{id}              | staff/admin   | Actualizar pieza                                |
+| PATCH  | /parts/{id}/stock        | staff/admin   | Ajustar stock manualmente con log               |
+| DELETE | /parts/{id}              | staff/admin   | Soft delete (is_active=False)                   |
+| POST   | /parts/{id}/image        | staff/admin   | Subir imagen (JPG/PNG/WebP); guarda en /app/static/images/ |
 
 ### Orders
-| Método | Ruta                      | Rol requerido            | Descripción                                  |
-|--------|---------------------------|--------------------------|----------------------------------------------|
-| POST   | /orders/                  | Cualquier JWT            | Crear orden (transacción atómica)            |
-| GET    | /orders/                  | Cualquier JWT            | Listar (customer=propias, staff=todas)       |
-| GET    | /orders/{id}              | Cualquier JWT            | Detalle (customer solo las suyas)            |
-| PATCH  | /orders/{id}/cancel       | Cualquier JWT            | Cancelar (no si ya está shipped)             |
-| PATCH  | /orders/{id}/status       | staff/admin              | Cambiar estado (processing/shipped/etc)      |
-| GET    | /orders/{id}/pdf          | Cualquier JWT            | Descargar recibo PDF                         |
+| Método | Ruta                      | Rol requerido            | Descripción                                                   |
+|--------|---------------------------|--------------------------|---------------------------------------------------------------|
+| POST   | /orders/                  | Cualquier JWT            | Crear orden (transacción atómica)                             |
+| GET    | /orders/                  | Cualquier JWT            | Listar (customer=propias, staff=todas)                        |
+| GET    | /orders/{id}              | Cualquier JWT            | Detalle (customer solo las suyas)                             |
+| PATCH  | /orders/{id}/cancel       | customer/cualquier JWT   | Cancelar (solo el cliente; no si ya está shipped/delivered)   |
+| PATCH  | /orders/{id}/status       | staff/admin              | Avanzar estado: received→processing→shipped→delivered         |
+| GET    | /orders/{id}/pdf          | Cualquier JWT            | Descargar recibo PDF                                          |
 
 ### Inventory
 | Método | Ruta              | Rol requerido | Descripción                            |
@@ -217,15 +220,15 @@ Todos bajo prefijo `/api/v1`. Swagger disponible en `http://localhost:8000/docs`
 
 ### ENUMs PostgreSQL (todos en minúsculas)
 ```sql
-userrole:       customer, staff, admin
-orderstatus:    received, processing, shipped, cancelled
+userrole:        customer, staff, admin
+orderstatus:     received, processing, shipped, delivered, cancelled
 inventoryaction: restock, adjustment, sale, return
 ```
 
 ### Tablas
 ```
 users           id(UUID PK), email(UNIQUE), hashed_password, full_name, role, is_active, timestamps
-parts           id(UUID PK), sku(UNIQUE), name, description, brand, category, price(10,2), stock_quantity, is_active, timestamps
+parts           id(UUID PK), sku(UNIQUE), name, description, brand, category, price(10,2), stock_quantity, image_url(500), is_active, timestamps
 orders          id(UUID PK), user_id(FK→users), status, total_amount(12,2), cancelled_at, timestamps
 order_items     id(UUID PK), order_id(FK→orders), part_id(FK→parts), quantity, unit_price(10,2), subtotal(12,2)
 inventory_logs  id(UUID PK), part_id(FK→parts), user_id(FK→users), action_type, qty_before, qty_after, delta, reason, timestamps
@@ -256,12 +259,23 @@ status_history  id(UUID PK), order_id(FK→orders), changed_by(FK→users), old_
   inyectando automáticamente el JWT de la sesión
 - Decorator `@login_required` en todas las rutas protegidas
 - Al login, verifica `role != "customer"` y rechaza si es cliente
+- Todos los labels de estado/acción se muestran en **español** via mapas Jinja2
+  (`{% set status_labels = {'received':'Recibido', ...} %}`)
+- Vista de inventario (`/inventory`) muestra lista de productos con badge de stock y botón
+  "Ajustar" por fila; "Auditoría de inventario" abre `/inventory/logs`
+- Upload de imagen al crear/editar parte: form con `enctype="multipart/form-data"`,
+  se llama `POST /parts/{id}/image` con multipart tras el create/update exitoso
 
 ### Laravel
 - Controladores delgados: toda la lógica es llamar a la API con `Http::withToken(session('token'))`
 - Middleware `CheckApiAuth` redirige a login si no hay token en sesión
 - Blade templates usan Bootstrap 5.3
 - Variables de entorno de Laravel se generan en `entrypoint.sh` desde las env vars de Docker
+- **Carrito en sesión:** `CartController` maneja add/update/remove/index/checkout;
+  los items se guardan en `session('cart')` como array asociativo keyed por `part_id`
+- La ruta `orders.create` fue **eliminada**; el flujo de compra es ahora: catálogo → carrito → checkout
+- `PUBLIC_API_URL` (env var) se usa en Blade para construir URLs de imágenes accesibles desde el browser
+  (la URL interna `http://api:8000` no es accesible desde el navegador del usuario)
 
 ---
 
@@ -304,6 +318,22 @@ en el directorio `autopartes-laravel/`.
 Ningún frontend expone el JWT al navegador directamente. Flask lo guarda en la sesión de Flask
 (cookie firmada server-side). Laravel lo guarda en `session('token')`. Los controladores lo
 inyectan en cada llamada a la API.
+
+### 7. Status `delivered` — flujo de estados de pedidos
+Los estados avanzan **solo desde el panel admin (Flask)**:
+`received → processing → shipped → delivered`
+El botón de cambio de estado se muestra siempre que el pedido **no esté en** `cancelled` ni `delivered`
+(ambos son estados finales). La cancelación solo la hace el **cliente desde Laravel**.
+La migración `0004_add_delivered_status.py` usa `ALTER TYPE orderstatus ADD VALUE IF NOT EXISTS 'delivered'`
+(idempotente; PostgreSQL no permite `CREATE TYPE IF NOT EXISTS`).
+
+### 8. Imágenes de productos
+- La API guarda archivos en `/app/static/images/{part_id}.{ext}` dentro del contenedor
+- `main.py` monta `StaticFiles(directory="/app/static")` → accesible en `http://localhost:8000/static/...`
+- El volumen Docker `api_static:/app/static` persiste imágenes entre reinicios
+- `part.image_url` almacena el path relativo, ej: `/static/images/abc123.jpg`
+- Flask construye la URL completa con `http://localhost:8000` + `part.image_url`
+- Laravel usa `env('PUBLIC_API_URL', 'http://localhost:8000')` + `$part['image_url']` en Blade
 
 ### 6. Transacción atómica en creación de órdenes
 El flujo de `POST /orders` tiene 3 fases explícitas antes del commit:
@@ -365,6 +395,7 @@ docker compose down -v
 | API_URL                      | flask    | http://api:8000/api/v1                   |
 | SECRET_KEY                   | flask    | flask-secret-key-2024                    |
 | API_URL                      | laravel  | http://api:8000/api/v1                   |
+| PUBLIC_API_URL               | laravel  | http://localhost:8000 (URL accesible desde browser para imágenes) |
 | APP_KEY                      | laravel  | base64:kJ5dNvTt... (hardcodeado)         |
 
 ---
@@ -372,7 +403,7 @@ docker compose down -v
 ## Estado del Proyecto (a 2026-03-27)
 
 Proyecto **funcionalmente completo** según el rubric del tercer parcial (100 pts):
-- 2 frontends (Flask interno + Laravel cliente) ✓
+- 2 frontends (Flask interno "Macuin Admin" + Laravel cliente "Macuin Autopartes") ✓
 - Toda lógica en FastAPI ✓
 - API estructurada por routers ✓
 - Modelos SQLAlchemy ✓
@@ -382,6 +413,15 @@ Proyecto **funcionalmente completo** según el rubric del tercer parcial (100 pt
 - Endpoint de órdenes (1 a N productos) ✓
 - Endpoint de historial de órdenes ✓
 - CRUD interno de usuarios ✓
-- CRUD de piezas ✓
+- CRUD de piezas ✓ (con imagen)
 - 4+ tipos de reportes ✓
 - Reportes en PDF, xlsx, docx ✓
+
+### Features adicionales implementadas
+- **Catálogo Laravel**: buscador por nombre + filtros por marca y categoría
+- **Carrito de compras** (Laravel): sesión-based, navbar badge, vista carrito, checkout → API
+- **Imágenes de productos**: upload desde Flask admin, visualización en catálogo Laravel
+- **Estado `delivered`**: flujo completo received→processing→shipped→delivered en Flask admin
+- **Labels en español**: todos los estados/acciones en Flask admin traducidos
+- **Vista de inventario reestructurada**: lista de productos con stock + auditoría detrás de botón
+- **Nombres de producto** en detalle de pedidos y logs de inventario (antes mostraba UUID)
