@@ -239,15 +239,33 @@ def orders_status(order_id):
 @app.route("/reports")
 @login_required
 def reports_index():
-    summary    = api("GET", "/reports/summary").json()
-    orders_rep = api("GET", "/reports/orders").json()
-    clients_rep = api("GET", "/reports/clients").json()
-    inv_rep    = api("GET", "/reports/inventory").json()
+    start_date = request.args.get("start_date", "")
+    end_date   = request.args.get("end_date", "")
+    params = {}
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+
+    summary     = api("GET", "/reports/summary",  params=params).json()
+    orders_rep  = api("GET", "/reports/orders",   params=params).json()
+    clients_rep = api("GET", "/reports/clients",  params=params).json()
+    inv_rep     = api("GET", "/reports/inventory").json()
+
+    qs = ""
+    if start_date:
+        qs += f"?start_date={start_date}"
+    if end_date:
+        qs += ("&" if start_date else "?") + f"end_date={end_date}"
+
     return render_template("reports/index.html",
                            summary=summary,
                            orders_rep=orders_rep,
                            clients_rep=clients_rep,
-                           inv_rep=inv_rep)
+                           inv_rep=inv_rep,
+                           start_date=start_date,
+                           end_date=end_date,
+                           date_qs=qs)
 
 
 @app.route("/reports/<report_type>/<fmt>")
@@ -264,7 +282,12 @@ def reports_download(report_type, fmt):
     path = path_map.get((report_type, fmt))
     if not path:
         abort(404)
-    resp = api("GET", path)
+    params = {}
+    if request.args.get("start_date"):
+        params["start_date"] = request.args.get("start_date")
+    if request.args.get("end_date"):
+        params["end_date"] = request.args.get("end_date")
+    resp = api("GET", path, params=params)
     return Response(
         resp.content,
         status=resp.status_code,

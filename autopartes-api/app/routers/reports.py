@@ -1,5 +1,7 @@
 import io
-from fastapi import APIRouter, Depends
+from datetime import date
+from typing import Optional
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, require_staff
@@ -29,41 +31,49 @@ def _stream(data: bytes, media_type: str, filename: str) -> StreamingResponse:
 
 @router.get("/summary", response_model=ReportSummarySchema)
 def get_summary(
+    start_date: Optional[date] = Query(None, description="Fecha inicio (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="Fecha fin (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
     _staff=Depends(require_staff),
 ):
     """Resumen: total ventas, top 5 partes y pedidos por estado. Solo staff/admin."""
-    return report_service.get_summary(db)
+    return report_service.get_summary(db, start_date, end_date)
 
 
 @router.get("/summary/pdf")
 def get_summary_pdf(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
     _staff=Depends(require_staff),
 ):
     """Descarga el resumen de ventas en PDF."""
-    data = report_service.get_summary(db)
+    data = report_service.get_summary(db, start_date, end_date)
     return _stream(report_service.generate_pdf(data), "application/pdf", "reporte_ventas.pdf")
 
 
 @router.get("/summary/xlsx")
 def get_summary_xlsx(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
     _staff=Depends(require_staff),
 ):
     """Descarga el resumen de ventas en Excel (.xlsx)."""
-    data = report_service.get_summary(db)
+    data = report_service.get_summary(db, start_date, end_date)
     mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     return _stream(report_service.generate_summary_xlsx(data), mime, "reporte_ventas.xlsx")
 
 
 @router.get("/summary/docx")
 def get_summary_docx(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
     _staff=Depends(require_staff),
 ):
     """Descarga el resumen de ventas en Word (.docx)."""
-    data = report_service.get_summary(db)
+    data = report_service.get_summary(db, start_date, end_date)
     mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     return _stream(report_service.generate_summary_docx(data), mime, "reporte_ventas.docx")
 
@@ -74,20 +84,24 @@ def get_summary_docx(
 
 @router.get("/orders", response_model=OrdersReportSchema)
 def get_orders_report(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
     _staff=Depends(require_staff),
 ):
     """Lista detallada de los últimos 200 pedidos con conteo de items."""
-    return report_service.get_orders_report(db)
+    return report_service.get_orders_report(db, start_date, end_date)
 
 
 @router.get("/orders/pdf")
 def get_orders_report_pdf(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
     _staff=Depends(require_staff),
 ):
     """Descarga el reporte de pedidos en PDF."""
-    data = report_service.get_orders_report(db)
+    data = report_service.get_orders_report(db, start_date, end_date)
     return _stream(report_service.generate_orders_pdf(data), "application/pdf", "reporte_pedidos.pdf")
 
 
@@ -97,20 +111,24 @@ def get_orders_report_pdf(
 
 @router.get("/clients", response_model=ClientsReportSchema)
 def get_clients_report(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
     _staff=Depends(require_staff),
 ):
     """Clientes externos ordenados por total gastado (excluye cancelados)."""
-    return report_service.get_clients_report(db)
+    return report_service.get_clients_report(db, start_date, end_date)
 
 
 @router.get("/clients/pdf")
 def get_clients_report_pdf(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
     _staff=Depends(require_staff),
 ):
     """Descarga el reporte de clientes en PDF."""
-    data = report_service.get_clients_report(db)
+    data = report_service.get_clients_report(db, start_date, end_date)
     return _stream(report_service.generate_clients_pdf(data), "application/pdf", "reporte_clientes.pdf")
 
 

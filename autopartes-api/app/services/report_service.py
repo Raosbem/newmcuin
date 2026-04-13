@@ -1,5 +1,5 @@
 import io
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -8,18 +8,41 @@ from app.models.part import Part
 from app.models.user import User, UserRole
 
 
+def _date_range_filters(start_date: date | None, end_date: date | None) -> list:
+    """Devuelve filtros SQLAlchemy para un rango de fechas sobre Order.created_at."""
+    filters = []
+    if start_date:
+        filters.append(Order.created_at >= datetime(start_date.year, start_date.month, start_date.day, tzinfo=timezone.utc))
+    if end_date:
+        filters.append(Order.created_at < datetime(end_date.year, end_date.month, end_date.day, tzinfo=timezone.utc) + timedelta(days=1))
+    return filters
+
+
+def _date_range_label(start_date: date | None, end_date: date | None) -> str:
+    """Texto descriptivo del rango para incluir en documentos generados."""
+    if start_date and end_date:
+        return f"Período: {start_date} al {end_date}"
+    if start_date:
+        return f"Desde: {start_date}"
+    if end_date:
+        return f"Hasta: {end_date}"
+    return "Período: todos los registros"
+
+
 # ═══════════════════════════════════════════════════════════════
 # REPORTE 1 — Resumen general de ventas
 # ═══════════════════════════════════════════════════════════════
 
-def get_summary(db: Session) -> dict:
+def get_summary(db: Session, start_date: date | None = None, end_date: date | None = None) -> dict:
     """Totales de ventas, top 5 partes y pedidos por estado."""
+    date_filters = _date_range_filters(start_date, end_date)
+
     result = (
         db.query(
             func.coalesce(func.sum(Order.total_amount), 0).label("total_sales"),
             func.count(Order.id).label("total_orders"),
         )
-        .filter(Order.status != OrderStatus.CANCELLED)
+        .filter(Order.status != OrderStatus.CANCELLED, *date_filters)
         .first()
     )
 
@@ -33,7 +56,7 @@ def get_summary(db: Session) -> dict:
         )
         .join(OrderItem, Part.id == OrderItem.part_id)
         .join(Order, Order.id == OrderItem.order_id)
-        .filter(Order.status != OrderStatus.CANCELLED)
+        .filter(Order.status != OrderStatus.CANCELLED, *date_filters)
         .group_by(Part.id, Part.name, Part.sku)
         .order_by(func.sum(OrderItem.quantity).desc())
         .limit(5)
@@ -53,6 +76,7 @@ def get_summary(db: Session) -> dict:
 
     status_rows = (
         db.query(Order.status, func.count(Order.id).label("count"))
+        .filter(*date_filters)
         .group_by(Order.status)
         .all()
     )
@@ -66,6 +90,7 @@ def get_summary(db: Session) -> dict:
         "total_orders": result.total_orders,
         "top_parts": top_parts,
         "orders_by_status": orders_by_status,
+        "date_range_label": _date_range_label(start_date, end_date),
     }
 
 
@@ -73,10 +98,12 @@ def get_summary(db: Session) -> dict:
 # REPORTE 2 — Pedidos detallado
 # ═══════════════════════════════════════════════════════════════
 
-def get_orders_report(db: Session) -> dict:
+def get_orders_report(db: Session, start_date: date | None = None, end_date: date | None = None) -> dict:
     """Lista detallada de pedidos con conteo de items."""
+    date_filters = _date_range_filters(start_date, end_date)
     orders = (
         db.query(Order)
+        .filter(*date_filters)
         .order_by(Order.created_at.desc())
         .limit(200)
         .all()
@@ -94,6 +121,7 @@ def get_orders_report(db: Session) -> dict:
             for o in orders
         ],
         "total": len(orders),
+        "date_range_label": _date_range_label(start_date, end_date),
     }
 
 
@@ -101,8 +129,13 @@ def get_orders_report(db: Session) -> dict:
 # REPORTE 3 — Clientes por volumen de compras
 # ═══════════════════════════════════════════════════════════════
 
-def get_clients_report(db: Session) -> dict:
+def get_clients_report(db: Session, start_date: date | None = None, end_date: date | None = None) -> dict:
     """Clientes externos ordenados por total gastado."""
+    date_filters = _date_range_filters(start_date, end_date)
+    order_conditions = (Order.user_id == User.id) & (Order.status != OrderStatus.CANCELLED)
+    if date_filters:
+        for f in date_filters:
+            order_conditions = order_conditions & f
     rows = (
         db.query(
             User.id.label("user_id"),
@@ -111,7 +144,7 @@ def get_clients_report(db: Session) -> dict:
             func.count(Order.id).label("total_orders"),
             func.coalesce(func.sum(Order.total_amount), 0).label("total_spent"),
         )
-        .outerjoin(Order, (Order.user_id == User.id) & (Order.status != OrderStatus.CANCELLED))
+        .outerjoin(Order, order_conditions)
         .filter(User.role == UserRole.CUSTOMER)
         .group_by(User.id, User.full_name, User.email)
         .order_by(func.coalesce(func.sum(Order.total_amount), 0).desc())
@@ -129,6 +162,7 @@ def get_clients_report(db: Session) -> dict:
             for r in rows
         ],
         "total_clients": len(rows),
+        "date_range_label": _date_range_label(start_date, end_date),
     }
 
 
@@ -200,6 +234,7 @@ def generate_pdf(data: dict) -> bytes:
 
     elements.append(Paragraph("Reporte de Ventas — Autopartes API", styles["Title"]))
     elements.append(Paragraph(f"Generado: {_now_str()}", styles["Normal"]))
+    elements.append(Paragraph(data.get("date_range_label", ""), styles["Normal"]))
     elements.append(Spacer(1, 0.3 * inch))
 
     elements.append(Paragraph("Resumen General", styles["Heading2"]))
@@ -319,6 +354,7 @@ def generate_summary_xlsx(data: dict) -> bytes:
     ws1.title = "Resumen"
     ws1.append(["Reporte de Ventas — Autopartes API"])
     ws1.append([f"Generado: {_now_str()}"])
+    ws1.append([data.get("date_range_label", "")])
     ws1.append([])
     ws1.append(["Métrica", "Valor"])
     ws1.append(["Total de Ventas (excl. cancelados)", float(data["total_sales"])])
@@ -371,6 +407,7 @@ def generate_summary_docx(data: dict) -> bytes:
     doc = Document()
     doc.add_heading("Reporte de Ventas — Autopartes API", 0)
     doc.add_paragraph(f"Generado: {_now_str()}")
+    doc.add_paragraph(data.get("date_range_label", ""))
 
     # Resumen general
     doc.add_heading("Resumen General", level=1)
@@ -430,6 +467,7 @@ def generate_orders_pdf(data: dict) -> bytes:
 
     elements.append(Paragraph("Reporte de Pedidos — Autopartes API", styles["Title"]))
     elements.append(Paragraph(f"Generado: {_now_str()}", styles["Normal"]))
+    elements.append(Paragraph(data.get("date_range_label", ""), styles["Normal"]))
     elements.append(Spacer(1, 0.3 * inch))
 
     rows = [["ID (corto)", "Estado", "Items", "Total ($)", "Fecha"]]
@@ -468,6 +506,7 @@ def generate_clients_pdf(data: dict) -> bytes:
 
     elements.append(Paragraph("Reporte de Clientes — Autopartes API", styles["Title"]))
     elements.append(Paragraph(f"Generado: {_now_str()}", styles["Normal"]))
+    elements.append(Paragraph(data.get("date_range_label", ""), styles["Normal"]))
     elements.append(Spacer(1, 0.3 * inch))
 
     rows = [["#", "Nombre", "Email", "Pedidos", "Total Gastado ($)"]]
