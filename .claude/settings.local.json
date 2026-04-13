@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find /d/GITT/newmcuin -maxdepth 3 -type f -not -path */venv/* -not -path */node_modules/* -not -path */__pycache__/* -not -path */.git/*)"
+      "Bash(find /d/GITT/newmcuin -maxdepth 3 -type f -not -path */venv/* -not -path */node_modules/* -not -path */__pycache__/* -not -path */.git/*)",
+      "Bash(docker compose:*)"
     ]
   }
 }
