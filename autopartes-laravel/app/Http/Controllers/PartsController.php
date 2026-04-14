@@ -26,9 +26,13 @@ class PartsController extends Controller
         if ($request->filled('brand_id'))    $params['brand_id']    = $request->query('brand_id');
         if ($request->filled('category_id')) $params['category_id'] = $request->query('category_id');
 
-        $parts      = Http::withToken($this->token())->get("{$this->apiUrl}/parts", $params)->json() ?? [];
-        $brands     = Http::withToken($this->token())->get("{$this->apiUrl}/brands")->json() ?? [];
-        $categories = Http::withToken($this->token())->get("{$this->apiUrl}/categories")->json() ?? [];
+        $partsResp      = Http::withToken($this->token())->get("{$this->apiUrl}/parts/", $params);
+        $brandsResp     = Http::withToken($this->token())->get("{$this->apiUrl}/brands/");
+        $categoriesResp = Http::withToken($this->token())->get("{$this->apiUrl}/categories/");
+
+        $parts      = $partsResp->successful()      ? ($partsResp->json()      ?? []) : [];
+        $brands     = $brandsResp->successful()     ? ($brandsResp->json()     ?? []) : [];
+        $categories = $categoriesResp->successful() ? ($categoriesResp->json() ?? []) : [];
 
         return view('parts.index', compact('parts', 'brands', 'categories'));
     }
